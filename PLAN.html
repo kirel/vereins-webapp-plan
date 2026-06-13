@@ -195,7 +195,7 @@
               <ul class="sans mt-4 grid gap-2 text-sm leading-6 text-ink/75 sm:grid-cols-2">
                 <li>Brevo oder Mailgun</li>
                 <li>Scheduler</li>
-                <li>Admin-UI fuer Workflows</li>
+                <li>Admin Panel fuer Workflow-Commands</li>
                 <li>Attendance-UI</li>
                 <li>Trainerrolle</li>
                 <li>Familienaccounts</li>
@@ -778,6 +778,19 @@ mise run workflow:attendance-reminder -- T-001</pre>
               </div>
             </div>
 
+            <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
+              <h3 class="text-2xl">Spaeteres Admin Panel</h3>
+              <p class="sans mt-4 max-w-3xl text-sm leading-6 text-ink/68">Nicht MVP-Scope: Admins sollen spaeter jedes `workflow:*` Command webbasiert ausloesen koennen. Das Panel nutzt dieselben serverseitigen Workflow-Funktionen wie die CLI.</p>
+              <div class="sans mt-5 grid gap-3 text-sm leading-6 text-ink/72 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">Command-Auswahl mit Parametern wie `session_id`</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">Validierung vor Ausfuehrung</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">Bestaetigung fuer riskante Commands</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">Dry-Run/Preview, wo sinnvoll</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">Run-Log mit Admin, Zeitpunkt, Status und Fehlern</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">CLI bleibt MVP-Ausfuehrungspfad</div>
+              </div>
+            </div>
+
             <div class="mt-8 rounded-md border border-ink/10 bg-paper/80 p-6">
               <h3 class="text-2xl">Notice-Typen im MVP</h3>
               <div class="sans mt-4 grid gap-2 text-sm text-ink/74 sm:grid-cols-2 lg:grid-cols-4">
@@ -869,6 +882,7 @@ DEFAULT_ATTENDANCE_REMINDER_HOURS_BEFORE</pre>
               <div class="sans mt-4 grid gap-2 text-sm text-ink/72 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">echte E-Mail-Zustellung</div>
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">Scheduler</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Admin Panel fuer Workflow-Commands</div>
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">Admin-/Attendance-UI</div>
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">Trainerrolle</div>
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">Readonly-Rolle</div>

@@ -42,7 +42,7 @@ Der MVP umfasst:
 Nicht im MVP:
 
 - echte E-Mail-Zustellung
-- Admin-UI fuer Workflow-Trigger
+- webbasiertes Admin Panel fuer Workflow-/Command-Trigger
 - Trainerrollen
 - Familienaccounts / mehrere Personen pro Login
 - komplexe Priorisierung
@@ -594,7 +594,17 @@ Nicht im MVP:
 - Wartelistenposition anzeigen
 - Teilnehmerliste fuer Rider
 - Attendance-UI
-- Admin-UI fuer Workflow-Trigger
+- webbasiertes Admin Panel fuer Workflow-/Command-Trigger
+
+Spaeteres Admin Panel:
+
+- Alle `workflow:*` Commands sollen von Admins webbasiert ausgeloest werden koennen.
+- Das Admin Panel ist ausdruecklich nicht MVP-Scope; im MVP reicht `mise`/Terminal.
+- Die Web-UI soll dieselben serverseitigen Workflow-Funktionen verwenden wie die CLI, keine zweite Implementierung.
+- Commands mit Parametern wie `session_id` bekommen klare Formularfelder und Validierung.
+- Riskante Commands wie `workflow:wipe-decision` oder `workflow:cancel-training` brauchen eine explizite Bestaetigung.
+- Wo sinnvoll gibt es `dry-run`/Preview, bevor geschrieben oder Notices erzeugt werden.
+- Ergebnisse werden als Admin-Run-Log sichtbar: wer, wann, command, Parameter, Status, Warnungen, Fehler.
 
 ## 12. Auth-Vergleichskriterien
 
@@ -698,7 +708,7 @@ Bewusst spaeter:
 
 - echte E-Mail-Zustellung mit Brevo oder Mailgun
 - Scheduler, z. B. Vercel Cron, GitHub Actions oder Cloudflare Cron
-- Workflow-Trigger in Admin-UI
+- webbasiertes Admin Panel fuer alle Workflow-/Command-Trigger
 - Admin-/Attendance-UI
 - Trainerrolle
 - Readonly-Rolle
