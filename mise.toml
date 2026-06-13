@@ -1,3 +1,7 @@
+[tools]
+node = "24"
+pnpm = "10"
+
 [env]
 APP_TIMEZONE = "Europe/Berlin"
 GOOGLE_WORKSPACE_PROJECT_ID = "rider-499313"

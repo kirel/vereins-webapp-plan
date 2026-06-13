@@ -642,6 +642,19 @@ Bekannte Schieflage:
 
 ## 13. Technische Umsetzung
 
+Beschlossene Umsetzungsentscheidungen:
+
+| Thema | Entscheidung | Begruendung |
+| --- | --- | --- |
+| Node | Node 24 LTS, in `mise.toml` gepinnt | stabiler LTS-Pfad fuer Next.js, native Pakete und Container |
+| Package Manager | pnpm 10 mit pnpm Workspaces | simples Monorepo ohne zusaetzlichen Task-Orchestrator |
+| Task-Orchestrierung | kein Turborepo im MVP | erst hinzufuegen, wenn Builds/Tests merklich profitieren |
+| Apps | zwei getrennte Next.js Apps | realer Vergleich Clerk vs. Better Auth bei gemeinsamem fachlichem Core |
+| UI | Tailwind CSS + shadcn/ui + lucide-react | schnell, konsistent, gute Basis fuer Formulare, Tabellen und spaeteres Admin-UI |
+| Dev-Notices | Terminal-Ausgabe plus JSONL-Datei | Magic Links und Notices bleiben nachvollziehbar, ohne echte Mail-Infrastruktur |
+| Session-Sheets | `workflow:sync-session-sheets` erzeugt fehlende Session-Sheets | Admins sehen Links frueh, Fehler fallen vor dem ersten Signup auf |
+| Datum/Zeit | echte Google-Sheets Datum/Zeit-Zellen | fuer Menschen am besten bearbeitbar; Code normalisiert zentral mit `APP_TIMEZONE` |
+
 Stack:
 
 - Next.js App Router
@@ -655,6 +668,7 @@ Stack:
 - pnpm 10
 - `mise.toml` fuer lokale Dev-Env, Tool-Versionen und Tasks
 - keine `.nvmrc`, keine `.node-version`
+- kein Turborepo im MVP
 
 Monorepo:
 
@@ -677,6 +691,22 @@ Architekturregel:
 - Auth-, Session- und Magic-Link-/Notice-Raender werden pro App adaptiert.
 - Shared UI liegt in `packages/ui`.
 - Auth-Seiten und Auth-Provider bleiben app-spezifisch.
+- Beide Apps haben denselben fachlichen Funktionsumfang und nutzen getrennte Google-Sheets-Environments.
+
+Dev-Notice-Log:
+
+- Im MVP werden keine echten E-Mails versendet.
+- Jeder Notice-Adapter schreibt auf stdout.
+- Zusaetzlich wird eine JSONL-Datei geschrieben, z. B. `data/dev-notices.jsonl`.
+- Die Datei ist ein lokales Entwicklungsartefakt und wird nicht committed.
+- Spaeter kann derselbe Adapter-Vertrag mit Brevo oder Mailgun verbunden werden.
+
+Datum/Zeit:
+
+- `starts_at`, `ends_at`, `invite_send_at`, `decision_run_at` und Reminder-Zeiten bleiben echte Google-Sheets Datum/Zeit-Zellen.
+- `packages/sheets` ist allein verantwortlich fuer Lesen, Schreiben und Normalisierung.
+- `APP_TIMEZONE=Europe/Berlin` ist verbindlich.
+- Ein frueher Implementierungs-Spike prueft DateTime-Lesen/Schreiben gegen die echten Test-Sheets.
 
 Better Auth:
 
@@ -738,7 +768,6 @@ Bewusst spaeter:
 - Social Auth
 - Passkeys
 - externe Queue oder DB-gestuetzter Lock fuer Multi-Instance-Deployments
-- persistentes Notice-/Mail-Log
 
 ## 16. Noch zu klaeren
 
@@ -754,8 +783,6 @@ Fachlich:
 
 Technisch:
 
-- Soll es eine persistente Dev-Mail-History geben oder reicht Terminal/Dev-Event?
 - Wird `workflow:*` als gemeinsames CLI-Package umgesetzt?
-- Wie genau werden Google-Sheets DateTime-Zellen geparst und geschrieben?
 - Welche Better-Auth-Plugins brauchen wir konkret fuer Magic Links?
 - Wie wird Locking geloest, wenn spaeter mehr als eine Server-Instanz laeuft?

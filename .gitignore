@@ -5,3 +5,6 @@ skills-lock.json
 google-service-account*.json
 .env
 .env.*
+data/
+*.sqlite
+*.sqlite-*
