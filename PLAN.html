@@ -129,6 +129,7 @@
         <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#flows">User Flows</a>
         <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#mockups">Mockups</a>
         <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#sheets">Sheets</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#ops">Risiken</a>
         <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#workflows">Workflows</a>
         <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#tech">Technik</a>
         <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#open">Offen</a>
@@ -633,6 +634,66 @@ flowchart TD
         </div>
       </section>
 
+      <section id="ops" class="px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Risiken</div>
+          <div>
+            <h2 class="text-4xl leading-tight">Konsistenz und Betrieb</h2>
+            <p class="sans mt-3 max-w-3xl text-sm leading-7 text-ink/68">Google Sheets bleibt im MVP bewusst Source of Truth. Das ist fuer Vereinsablaeufe praktisch, braucht aber klare technische Leitplanken.</p>
+
+            <div class="mt-8 grid gap-5 lg:grid-cols-2">
+              <div class="rounded-md border border-clay/20 bg-clay/[.055] p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-clay">Groesstes Risiko</div>
+                <h3 class="mt-2 text-2xl">Nebenlaeufige Schreibzugriffe</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>Google Sheets hat keine Unique Constraints und keine DB-Transaktionen.</li>
+                  <li>Doppelklicks oder parallele Tabs koennen doppelte Signups erzeugen.</li>
+                  <li>Gleichzeitige Absagen koennen Nachruecklogik stoeren.</li>
+                  <li>MVP-Gegenmassnahme: serverseitiger in-memory Lock pro Session-Spreadsheet.</li>
+                  <li>Mehrere Server-Instanzen brauchen spaeter Queue, externen Lock oder DB.</li>
+                </ul>
+              </div>
+
+              <div class="rounded-md border border-reed/20 bg-reed/[.075] p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-reed">Reconciliation</div>
+                <h3 class="mt-2 text-2xl">Validate statt blind vertrauen</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>`workflow:validate` prueft doppelte aktive Anmeldungen.</li>
+                  <li>Prueft doppelte E-Mails und doppelte `session_id`.</li>
+                  <li>Prueft fehlende Session-Sheets und ungueltige Statuswerte.</li>
+                  <li>Prueft Kapazitaetsverletzungen.</li>
+                  <li>Warnt im MVP, korrigiert aber nicht automatisch.</li>
+                </ul>
+              </div>
+
+              <div class="rounded-md border border-water/20 bg-water/[.06] p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-water">Scheduling</div>
+                <h3 class="mt-2 text-2xl">Ein Einstiegspunkt fuer Faelliges</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>`workflow:run-due` findet faellige Invites, Decisions und Reminder.</li>
+                  <li>Es nutzt `*_send_at`, `decision_run_at` und Done-Felder.</li>
+                  <li>Im MVP kann es manuell laufen.</li>
+                  <li>Spaeter kann GitHub Actions Cron denselben Task periodisch ausfuehren.</li>
+                  <li>Workflows sollen server-unabhaengige Node-Funktionen bleiben.</li>
+                </ul>
+              </div>
+
+              <div class="rounded-md border border-moss/20 bg-moss/[.07] p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-moss">Kanten geklaert</div>
+                <h3 class="mt-2 text-2xl">Bewusste MVP-Regeln</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>Nachruecken ist automatisch und verbindlich.</li>
+                  <li>Keine separate Annahme-Schleife fuer nachgerueckte Rider.</li>
+                  <li>`wipe-decision` leert Decision-, Rang- und Promoted-Felder.</li>
+                  <li>Zahlungslisten duerfen nur active confirmed/present Guests auswerten.</li>
+                  <li>DateTime-Lesen/Schreiben bekommt einen fruehen Spike.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="workflows" class="px-5 py-10 sm:px-8 lg:px-12">
         <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
           <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Workflows</div>
@@ -653,6 +714,8 @@ mise run better-auth:decision-notices -- T-001</pre>
                 <h3 class="text-2xl">Provider-neutral</h3>
                 <pre class="mono mt-4 overflow-x-auto text-xs leading-6 text-paper/82">mise run workflow:sync-session-sheets
 mise run workflow:fill-session-defaults
+mise run workflow:run-due
+mise run workflow:validate
 mise run workflow:decisions -- T-001
 mise run workflow:wipe-decision -- T-001
 mise run workflow:cancel-training -- T-001
@@ -691,6 +754,26 @@ mise run workflow:attendance-reminder -- T-001</pre>
                   <li>setzt confirmed/waitlisted</li>
                   <li>schreibt Rang und Strategie</li>
                   <li>verschickt keine Notices</li>
+                </ul>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <div class="sans text-xs uppercase tracking-[.2em] text-water">run-due</div>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>findet faellige Invites</li>
+                  <li>findet faellige Decisions</li>
+                  <li>findet Attendance-Reminder</li>
+                  <li>nutzt idempotente Done-Felder</li>
+                  <li>spaeter Cron-Einstiegspunkt</li>
+                </ul>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <div class="sans text-xs uppercase tracking-[.2em] text-clay">validate</div>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>doppelte aktive Signups</li>
+                  <li>doppelte E-Mails</li>
+                  <li>doppelte Session-IDs</li>
+                  <li>fehlende Session-Sheets</li>
+                  <li>Kapazitaetsverletzungen</li>
                 </ul>
               </div>
             </div>
@@ -767,6 +850,21 @@ DEFAULT_ATTENDANCE_REMINDER_HOURS_BEFORE</pre>
             </div>
 
             <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
+              <h3 class="text-2xl">Vergleichskriterien Clerk vs. Better Auth</h3>
+              <div class="sans mt-4 grid gap-2 text-sm text-ink/72 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Setup DX</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Magic-Link Flow</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Session Handling</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Custom UI Aufwand</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Hosting/Betrieb</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Lock-in</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Kosten</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Production-Reife</div>
+              </div>
+              <p class="sans mt-4 text-sm leading-6 text-ink/65">Bekannte Schieflage: Clerk ist gehostet und produktionsnah; Better Auth nutzt im MVP SQLite nur lokal/dev. Die Production-Persistenz fuer Better Auth muss separat bewertet werden.</p>
+            </div>
+
+            <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
               <h3 class="text-2xl">Spaeter bewusst ausbauen</h3>
               <div class="sans mt-4 grid gap-2 text-sm text-ink/72 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">echte E-Mail-Zustellung</div>
@@ -793,11 +891,15 @@ DEFAULT_ATTENDANCE_REMINDER_HOURS_BEFORE</pre>
                 <li>Wer pflegt `club_riders` und `club_training`?</li>
                 <li>Wer darf Session-Sheets bearbeiten?</li>
                 <li>Braucht es eine Regel fuer spaete Absagen?</li>
+                <li>Soll sehr kurzfristiges Nachruecken unterdrueckt werden?</li>
                 <li>Reicht `notes` fuer interne Hinweise?</li>
+                <li>Sollen Admins garantiert Plaetze bekommen oder nur wie Members priorisiert werden?</li>
+                <li>Wann genau wird `excused` gesetzt?</li>
                 <li>Persistente Dev-Mail-History?</li>
                 <li>Google-Sheets DateTime Parsing im Detail</li>
                 <li>Better-Auth Plugin-Auswahl fuer Magic Links</li>
                 <li>Genauer Deployment-Pfad</li>
+                <li>Locking bei mehreren Server-Instanzen</li>
               </ul>
             </div>
           </div>

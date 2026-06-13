@@ -254,8 +254,48 @@ Gastzahlung:
 - Beim Signup setzt die App:
   - `guest -> open`
   - `member/admin -> not_required`
+- Zahlungspflicht entsteht fachlich erst fuer Guests mit `decision_status = confirmed` und Teilnahme.
+- Waitlisted Guests bleiben zwar technisch `open`, muessen aber vor Zahlungslisten nach `decision_status = confirmed` gefiltert werden.
+- Bei Storno bleibt der historische Wert stehen; Zahlungslisten duerfen nur aktive confirmed/present Guests auswerten.
 
-## 7. Google-Sheets-Struktur
+## 7. Konsistenz, Nebenlaeufigkeit und Betriebsannahmen
+
+Google Sheets ist im MVP bewusst Source of Truth, aber keine transaktionale Datenbank. Daraus ergeben sich technische Risiken, die vor Implementierung explizit behandelt werden.
+
+MVP-Annahmen:
+
+- Erwartetes Vereinsvolumen ist klein genug fuer Google Sheets als Backend.
+- Es gibt keine harte Garantie gegen alle Race Conditions wie in einer relationalen Datenbank.
+- Die App soll trotzdem serverseitig so schreiben, dass typische Doppelclick-/Parallel-Tab-Probleme verhindert werden.
+
+Schreibstrategie im MVP:
+
+- Alle App-Schreibzugriffe auf ein Session-Sheet laufen serverseitig ueber gemeinsame Domain-/Sheet-Funktionen.
+- Pro Node-Prozess wird ein in-memory Lock pro Session-Spreadsheet verwendet.
+- Das reicht fuer lokale/dev- und Single-Instance-MVP-Deployments.
+- Bei mehreren Server-Instanzen ist dieser Lock nicht ausreichend; dann braucht es Queue, externen Lock oder echte Datenbank.
+
+Validierung/Reconciliation:
+
+- Es gibt einen `workflow:validate` als leichten Integritaetscheck.
+- Der Workflow meldet u. a. doppelte aktive Anmeldungen, fehlende Session-Sheets, doppelte E-Mails, doppelte `session_id`, ungueltige Statuswerte und Kapazitaetsverletzungen.
+- Der Workflow korrigiert im MVP nicht automatisch, sondern warnt.
+
+DateTime:
+
+- Google-Sheets Datum/Zeit-Zellen sind ein Implementierungsrisiko.
+- Vor dem eigentlichen Bau soll ein kleiner Spike pruefen, wie `starts_at`, `decision_run_at` und andere Zeitwerte gelesen und geschrieben werden.
+- `APP_TIMEZONE` ist die verbindliche App-Zeitzone.
+
+Scheduling:
+
+- Im MVP koennen Einzel-Workflows manuell ausgefuehrt werden.
+- Zusaetzlich soll es `workflow:run-due` geben.
+- `workflow:run-due` findet faellige Invites, Decisions und Attendance-Reminder anhand der `*_send_at`/`decision_run_at` Felder und der zugehoerigen `*_sent_at`/`decision_completed_at` Flags.
+- Damit kann spaeter ein Scheduler nur noch denselben Einstiegspunkt periodisch ausfuehren.
+- Naheliegender spaeterer Pfad: GitHub Actions Cron, weil die Workflows bereits als CLI-Tasks gedacht sind.
+
+## 8. Google-Sheets-Struktur
 
 Jedes App-Environment hat eigene Google Sheets:
 
@@ -265,7 +305,7 @@ Jedes App-Environment hat eigene Google Sheets:
 
 Clerk und Better Auth nutzen getrennte Environments. Dadurch bleiben die fachlichen Spalten generisch und es gibt keine Spalten wie `clerk_user_id` oder `better_auth_user_id`.
 
-### 7.1 Spreadsheet `club_riders`
+### 8.1 Spreadsheet `club_riders`
 
 Tab: `riders`
 
@@ -288,7 +328,7 @@ Regeln:
 - E-Mail-Aenderungen sind nicht Teil des MVP.
 - Telefonnummer, Adresse, Geburtsdatum und `created_at`/`updated_at` sind nicht Teil des MVP.
 
-### 7.2 Spreadsheet `club_training`
+### 8.2 Spreadsheet `club_training`
 
 Tab: `training_sessions`
 
@@ -319,7 +359,7 @@ Regeln:
 - `status = cancelled` blockiert neue Anmeldungen.
 - Bestehende Signups bleiben bei Training-Absage als Historie erhalten.
 
-### 7.3 Pro Training: Session-Sheet
+### 8.3 Pro Training: Session-Sheet
 
 Pro Training gibt es ein eigenes Google Spreadsheet als Source of Truth fuer Signups und Attendance.
 
@@ -360,11 +400,11 @@ Regeln:
 - `rider_name` und `rider_role` sind Snapshots zum Zeitpunkt der Anmeldung.
 - Spaetere Aenderungen im Riders-Sheet werden nicht automatisch in alte Session-Sheets synchronisiert.
 
-## 8. Workflows
+## 9. Workflows
 
 Workflows sind idempotente serverseitige Funktionen und werden im MVP per Terminal-Task ausgefuehrt. Spaeter koennen dieselben Workflows scheduled laufen.
 
-### 8.1 Rider/Auth Workflows
+### 9.1 Rider/Auth Workflows
 
 Provider-spezifisch:
 
@@ -387,7 +427,7 @@ Regeln:
 - Magic Links werden kurzlebig zur Versandzeit erzeugt und nicht im Sheet gespeichert.
 - Im Dev-Modus werden Links im Terminal/Dev-Event angezeigt.
 
-### 8.2 Training/Sheet Workflows
+### 9.2 Training/Sheet Workflows
 
 Provider-neutral:
 
@@ -395,6 +435,8 @@ Provider-neutral:
 mise run workflow:sync-session-sheets
 mise run workflow:create-session-sheet -- <session_id>
 mise run workflow:fill-session-defaults
+mise run workflow:run-due
+mise run workflow:validate
 mise run workflow:decisions -- <session_id>
 mise run workflow:wipe-decision -- <session_id>
 mise run workflow:promote-waitlist -- <session_id>
@@ -435,7 +477,13 @@ mise run workflow:attendance-reminder -- <session_id>
 
 - loescht keine Anmeldungen
 - setzt `decision_completed_at` leer
-- setzt betroffene Signups fachlich zurueck auf `pending`
+- setzt `decision_notices_sent_at` leer
+- setzt `decision_status` fuer nicht-stornierte Signups auf `pending`
+- leert `priority_rank`
+- leert `priority_strategy`
+- leert `promoted_at`
+- laesst `signup_status = cancelled` historisch bestehen
+- laesst `attendance_status` und `guest_payment_status` unveraendert
 
 `workflow:cancel-training`:
 
@@ -449,7 +497,24 @@ mise run workflow:attendance-reminder -- <session_id>
 - erzeugt Admin-Reminder mit Link zum Session-Sheet
 - nutzt `attendance_reminder_sent_at` fuer Idempotenz
 
-## 9. Notices und E-Mail
+`workflow:promote-waitlist`:
+
+- ist ein Reparatur-/Reconciliation-Workflow.
+- Die normale Rider-Absage ruft dieselbe gemeinsame Nachruecklogik direkt serverseitig auf.
+- Der Workflow kann genutzt werden, wenn Admins im Sheet manuell korrigiert haben.
+
+`workflow:run-due`:
+
+- sucht faellige `training-invites`, `decisions` und `attendance-reminder`.
+- fuehrt nur Schritte aus, deren idempotente Done-Felder noch leer sind.
+- ist der spaetere Einstiegspunkt fuer Cron/Scheduler.
+
+`workflow:validate`:
+
+- prueft Sheet-Integritaet.
+- warnt, korrigiert aber im MVP nicht automatisch.
+
+## 10. Notices und E-Mail
 
 Im MVP werden keine echten E-Mails versendet. Stattdessen gibt es einen E-Mail-Adapter:
 
@@ -483,7 +548,13 @@ Decision-Notices:
 - `decision_confirmed` enthaelt Link zur Training-Detailseite
 - auf der Detailseite kann der Rider absagen
 
-## 10. App-UI
+Nachrueck-Notices:
+
+- Nachruecken ist im MVP automatisch und verbindlich.
+- Es gibt keine separate Annahme-/Ablehnen-Schleife.
+- Das erhoeht das No-show-Risiko bei sehr kurzfristigem Nachruecken und ist bewusst als MVP-Vereinfachung akzeptiert.
+
+## 11. App-UI
 
 MVP UI:
 
@@ -515,6 +586,8 @@ Status-Texte:
 - `pending`: "Angemeldet, Entscheidung steht aus"
 - `confirmed`: "Platz bestaetigt"
 - `waitlisted`: "Warteliste"
+- `signup_status = cancelled`: Rider kann sich erneut anmelden, solange `now < decision_run_at` und Training nicht begonnen hat
+- Training nach `decision_run_at` aber vor Decision: sichtbar, aber Anmeldung geschlossen und Entscheidung ausstehend
 
 Nicht im MVP:
 
@@ -523,7 +596,28 @@ Nicht im MVP:
 - Attendance-UI
 - Admin-UI fuer Workflow-Trigger
 
-## 11. Technische Umsetzung
+## 12. Auth-Vergleichskriterien
+
+Der Bau zweier Apps soll nicht nur zeigen, dass beide funktionieren, sondern den Vergleich strukturieren.
+
+Verglichen werden:
+
+- Developer Experience beim Setup
+- Magic-Link-Flow und lokale Testbarkeit
+- Session-Handling in Next.js
+- Aufwand fuer Custom UI
+- Betrieb/Hosting-Aufwand
+- Lock-in und Portabilitaet
+- Kostenmodell fuer kleinen Verein
+- Produktionsreife ohne zusaetzliche Infrastruktur
+
+Bekannte Schieflage:
+
+- Clerk ist gehostet und produktionsnah.
+- Better Auth nutzt im MVP SQLite nur lokal/dev.
+- Die Better-Auth-Production-Persistenz muss vor einer echten Produktentscheidung separat bewertet werden.
+
+## 13. Technische Umsetzung
 
 Stack:
 
@@ -572,7 +666,7 @@ Clerk:
 - nutzt im MVP Magic-Link-Login
 - Clerk Organizations sind fuer den MVP nicht gesetzt
 
-## 12. Environment-Konfiguration
+## 14. Environment-Konfiguration
 
 Fachliche Env:
 
@@ -598,7 +692,7 @@ Dazu kommen:
 
 Technische Google-IDs liegen in Env, nicht in fachlichen Sheets.
 
-## 13. Spaeter
+## 15. Spaeter
 
 Bewusst spaeter:
 
@@ -620,15 +714,20 @@ Bewusst spaeter:
 - Environment-Clone-/Seed-Workflow
 - Social Auth
 - Passkeys
+- externe Queue oder DB-gestuetzter Lock fuer Multi-Instance-Deployments
+- persistentes Notice-/Mail-Log
 
-## 14. Noch zu klaeren
+## 16. Noch zu klaeren
 
 Fachlich:
 
 - Wer pflegt `club_riders` und `club_training` direkt?
 - Wer darf Session-Sheets bearbeiten?
 - Soll es eine formale Regel geben, wann eine Absage spaet ist?
+- Soll sehr kurzfristiges Nachruecken unterdrueckt oder anders kommuniziert werden?
 - Reicht `notes` im Riders-Sheet fuer interne Hinweise?
+- Sollen Admins immer nur wie Mitglieder priorisiert werden oder garantiert einen Platz bekommen?
+- Wann genau soll `excused` gesetzt werden?
 
 Technisch:
 
@@ -636,3 +735,4 @@ Technisch:
 - Wird `workflow:*` als gemeinsames CLI-Package umgesetzt?
 - Wie genau werden Google-Sheets DateTime-Zellen geparst und geschrieben?
 - Welche Better-Auth-Plugins brauchen wir konkret fuer Magic Links?
+- Wie wird Locking geloest, wenn spaeter mehr als eine Server-Instanz laeuft?
