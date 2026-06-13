@@ -188,13 +188,14 @@
                 <li>Attendance im Session-Sheet</li>
                 <li>Gastzahlungsstatus</li>
                 <li>Dev-Mail-Adapter</li>
+                <li>In-Process Scheduler</li>
               </ul>
             </div>
             <div class="rounded-md border border-clay/20 bg-clay/[.055] p-6">
               <h3 class="text-2xl">Spaeter</h3>
               <ul class="sans mt-4 grid gap-2 text-sm leading-6 text-ink/75 sm:grid-cols-2">
                 <li>Brevo oder Mailgun</li>
-                <li>Scheduler</li>
+                <li>alternative externe Scheduler</li>
                 <li>Admin Panel fuer Workflow-Commands</li>
                 <li>Attendance-UI</li>
                 <li>Trainerrolle</li>
@@ -672,8 +673,8 @@ flowchart TD
                 <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
                   <li>`workflow:run-due` findet faellige Invites, Decisions und Reminder.</li>
                   <li>Es nutzt `*_send_at`, `decision_run_at` und Done-Felder.</li>
-                  <li>Im MVP kann es manuell laufen.</li>
-                  <li>Bevorzugt: In-Process Scheduler im Single-Container-VPS-Betrieb.</li>
+                  <li>Im MVP laeuft es manuell und per In-Process Scheduler.</li>
+                  <li>Bevorzugt: Single-Container-VPS-Betrieb.</li>
                   <li>Externe Cron-Dienste bleiben nur spaetere Alternativen.</li>
                 </ul>
               </div>
@@ -698,7 +699,7 @@ flowchart TD
         <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
           <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Workflows</div>
           <div>
-            <h2 class="text-4xl leading-tight">Terminal zuerst, In-Process Scheduler danach</h2>
+            <h2 class="text-4xl leading-tight">Terminal und In-Process Scheduler im MVP</h2>
             <div class="mt-8 grid gap-5 lg:grid-cols-2">
               <div class="rounded-md border border-ink/10 bg-ink p-5 text-paper shadow-ink">
                 <h3 class="text-2xl">Provider-spezifisch</h3>
@@ -763,7 +764,7 @@ mise run workflow:attendance-reminder -- T-001</pre>
                   <li>findet faellige Decisions</li>
                   <li>findet Attendance-Reminder</li>
                   <li>nutzt idempotente Done-Felder</li>
-                  <li>spaeter Cron-Einstiegspunkt</li>
+                  <li>MVP-Scheduler-Einstiegspunkt</li>
                 </ul>
               </div>
               <div class="rounded-md border border-ink/10 bg-paper p-5">
@@ -780,7 +781,7 @@ mise run workflow:attendance-reminder -- T-001</pre>
 
             <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
               <h3 class="text-2xl">Bevorzugter MVP-Betrieb</h3>
-              <p class="sans mt-4 max-w-3xl text-sm leading-6 text-ink/68">Praktisch soll ein einzelner dicker Container auf einem VPS laufen. Web-App, gemeinsame Workflow-Funktionen, CLI-Commands und Scheduler-Code liegen im selben Image. Der Scheduler ruft periodisch dieselbe `runDueWorkflows()` Funktion auf wie `mise run workflow:run-due`.</p>
+              <p class="sans mt-4 max-w-3xl text-sm leading-6 text-ink/68">Praktisch soll ein einzelner dicker Container auf einem VPS laufen. Web-App, gemeinsame Workflow-Funktionen, CLI-Commands und Scheduler-Code liegen im selben Image. Der In-Process Scheduler ist MVP-Scope und ruft periodisch dieselbe `runDueWorkflows()` Funktion auf wie `mise run workflow:run-due`.</p>
               <div class="sans mt-5 grid gap-3 text-sm leading-6 text-ink/72 sm:grid-cols-2 lg:grid-cols-3">
                 <div class="rounded-md border border-ink/10 bg-white/45 p-4">`SCHEDULER_ENABLED=true` aktiviert Scheduling</div>
                 <div class="rounded-md border border-ink/10 bg-white/45 p-4">`SCHEDULER_INTERVAL_CRON` setzt den Takt</div>

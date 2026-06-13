@@ -38,6 +38,7 @@ Der MVP umfasst:
 - Dev-Mail-Adapter statt echter E-Mails
 - Magic Links im Dev-Modus sichtbar im Terminal/Dev-Event
 - Terminal-Workflows ueber `mise`
+- In-Process Scheduler fuer faellige Workflows im Single-Container-Betrieb
 
 Nicht im MVP:
 
@@ -292,10 +293,10 @@ Scheduling:
 - Im MVP koennen Einzel-Workflows manuell ausgefuehrt werden.
 - Zusaetzlich soll es `workflow:run-due` geben.
 - `workflow:run-due` findet faellige Invites, Decisions und Attendance-Reminder anhand der `*_send_at`/`decision_run_at` Felder und der zugehoerigen `*_sent_at`/`decision_completed_at` Flags.
-- Damit kann spaeter ein Scheduler nur noch denselben Einstiegspunkt periodisch ausfuehren.
 - Bevorzugter MVP-Betriebsmodus: ein einzelner Container auf einem VPS.
 - In diesem Container laufen Web-App, serverseitige Workflow-Funktionen und ein In-Process Scheduler im selben Node-Deployment.
 - Der In-Process Scheduler ruft periodisch dieselbe `runDueWorkflows()` Funktion auf wie `mise run workflow:run-due`.
+- Der In-Process Scheduler ist MVP-Scope und wird ueber `SCHEDULER_ENABLED` aktiviert.
 - GitHub Actions Cron, Vercel Cron oder Cloudflare Cron bleiben nur alternative Betriebsformen, nicht die bevorzugte MVP-Loesung.
 
 Single-Container-Betrieb:
@@ -415,7 +416,7 @@ Regeln:
 
 ## 9. Workflows
 
-Workflows sind idempotente serverseitige Funktionen und werden im MVP per Terminal-Task ausgefuehrt. Spaeter koennen dieselben Workflows scheduled laufen.
+Workflows sind idempotente serverseitige Funktionen. Im MVP koennen sie per Terminal-Task ausgefuehrt werden; zusaetzlich ruft der In-Process Scheduler `workflow:run-due` periodisch im Single-Container-Betrieb auf.
 
 ### 9.1 Rider/Auth Workflows
 
@@ -520,7 +521,7 @@ mise run workflow:attendance-reminder -- <session_id>
 
 - sucht faellige `training-invites`, `decisions` und `attendance-reminder`.
 - fuehrt nur Schritte aus, deren idempotente Done-Felder noch leer sind.
-- ist der Einstiegspunkt fuer CLI, In-Process Scheduler und spaetere externe Cron-Varianten.
+- ist der Einstiegspunkt fuer CLI, den MVP-In-Process-Scheduler und spaetere externe Cron-Varianten.
 
 `workflow:validate`:
 
