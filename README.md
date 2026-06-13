@@ -65,3 +65,22 @@ Lokale Keys liegen in `.env.local` und werden nicht committed:
 - `CLERK_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
+
+## Better Auth
+
+Better Auth ist selbst gehostet und braucht keine gehostete App-ID.
+
+Nicht-geheime lokale Defaults stehen in [mise.toml](./mise.toml):
+
+- `BETTER_AUTH_URL`
+- `BETTER_AUTH_DATABASE_URL`
+
+Lokale Secrets liegen in `.env.local` und werden nicht committed:
+
+- `BETTER_AUTH_SECRET`
+
+1Password Item:
+
+- Vault: `Private`
+- Item: `Better Auth - WSC Prototypes`
+- Item ID: `ay26htmtpcbltxwxgyo6wecw64`

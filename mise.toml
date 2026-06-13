@@ -8,6 +8,9 @@ GOOGLE_APPLICATION_CREDENTIALS = "/Users/daniel/code/wsc-prototypes/google-servi
 CLERK_APP_ID = "app_3F5I0r7ipX4ueR77SHBRhBcJTHw"
 CLERK_DEV_INSTANCE_ID = "ins_3F5I0uuy1tbzHFScNL7pnhahpEr"
 
+BETTER_AUTH_URL = "http://localhost:3001"
+BETTER_AUTH_DATABASE_URL = "file:./data/better-auth.sqlite"
+
 WSC_DRIVE_ROOT_FOLDER_ID = "1DFcRTGyaknZjzLDhbjFK1_IokboR8-4Z"
 
 WSC_CLERK_DRIVE_FOLDER_ID = "1CTGQDIKhe2nKL6HZMQLxfumIsZcjN0IZ"
