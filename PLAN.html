@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plan: Vereins-Webapp mit Google Sheets Backend</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#17201b",
+            paper: "#f7f4ec",
+            line: "#d8d0c1",
+            moss: "#2f5d46",
+            reed: "#8a6f38",
+            clay: "#b25d3f",
+            water: "#2e6f7e",
+            fog: "#e9e3d6"
+          },
+          boxShadow: {
+            ink: "0 18px 50px rgba(23,32,27,.12)",
+            low: "0 8px 24px rgba(23,32,27,.08)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root {
+      --paper: #f7f4ec;
+      --ink: #17201b;
+      --line: #d8d0c1;
+      --moss: #2f5d46;
+      --reed: #8a6f38;
+      --clay: #b25d3f;
+      --water: #2e6f7e;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        linear-gradient(90deg, rgba(23,32,27,.045) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(23,32,27,.035) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      color: var(--ink);
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+    }
+
+    .sans { font-family: ui-sans-serif, "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+    .section-number {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+    }
+
+    .grain::before {
+      content: "";
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      opacity: .26;
+      background-image: radial-gradient(rgba(23,32,27,.13) .65px, transparent .65px);
+      background-size: 4px 4px;
+      mix-blend-mode: multiply;
+      z-index: 40;
+    }
+
+    .flow-node {
+      border: 1px solid rgba(23,32,27,.16);
+      background: rgba(255,255,255,.44);
+      box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
+    }
+
+    .flow-arrow {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(47,93,70,.18), rgba(47,93,70,.72));
+      position: relative;
+    }
+    .flow-arrow::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      border-left: 8px solid rgba(47,93,70,.72);
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+
+    .mock-browser-bar span {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .sheet-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.15fr .85fr .95fr .9fr .85fr;
+      min-width: 680px;
+    }
+
+    .sheet-grid-riders {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr 1fr 1fr .8fr .9fr;
+      min-width: 720px;
+    }
+
+    .status-dot {
+      width: .55rem;
+      height: .55rem;
+      border-radius: 999px;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body class="grain">
+  <div class="min-h-screen">
+    <aside class="fixed left-0 top-0 z-30 hidden h-screen w-72 border-r border-ink/10 bg-paper/88 px-6 py-7 backdrop-blur-xl xl:block">
+      <div class="sans text-xs uppercase tracking-[.24em] text-ink/55">Vereins-Webapp</div>
+      <h1 class="mt-3 text-2xl leading-tight">Google Sheets Backend Plan</h1>
+      <nav class="sans mt-8 space-y-1 text-sm">
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#overview">Ueberblick</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#requirements">Requirements</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#flows">User Flows</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#mockups">Mockups</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#sheets">Sheets</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#workflows">Workflows</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#tech">Technik</a>
+        <a class="block rounded-md px-3 py-2 hover:bg-ink/5" href="#open">Offen</a>
+      </nav>
+      <div class="sans absolute bottom-7 left-6 right-6 rounded-md border border-ink/10 bg-white/35 p-4 text-xs leading-relaxed text-ink/65">
+        Stand: MVP-Abstimmung. Echte E-Mails, Admin-UI und komplexe Priorisierung sind bewusst spaeter.
+      </div>
+    </aside>
+
+    <main class="xl:pl-72">
+      <section id="overview" class="relative overflow-hidden border-b border-ink/10 px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
+        <div class="absolute right-8 top-8 hidden h-28 w-28 rotate-6 border border-ink/15 bg-white/25 lg:block"></div>
+        <div class="max-w-6xl">
+          <div class="sans flex flex-wrap items-center gap-2 text-xs uppercase tracking-[.22em] text-moss">
+            <span>Plan</span><span class="h-px w-10 bg-moss/40"></span><span>MVP</span><span class="h-px w-10 bg-moss/40"></span><span>Vereinsabstimmung</span>
+          </div>
+          <h2 class="mt-5 max-w-4xl text-4xl leading-[1.02] sm:text-6xl lg:text-7xl">Trainings buchen. Sheets bleiben die Vereinszentrale.</h2>
+          <p class="sans mt-6 max-w-3xl text-base leading-8 text-ink/72 sm:text-lg">
+            Die App gibt Ridern einen einfachen Zugang zu Trainings, Anmeldung, Warteliste und Absage. Admins behalten Google Sheets als vertraute Arbeitsoberflaeche fuer Rider, Trainingstermine, Attendance und Gastzahlungen.
+          </p>
+
+          <div class="mt-9 grid gap-4 md:grid-cols-3">
+            <div class="rounded-md border border-ink/10 bg-white/45 p-5 shadow-low">
+              <div class="sans text-xs uppercase tracking-[.18em] text-reed">Rider</div>
+              <div class="mt-3 text-3xl">3 Rollen</div>
+              <p class="sans mt-2 text-sm leading-6 text-ink/65">admin, member und guest. Admins duerfen auch fahren, Guests zahlen pro Training.</p>
+            </div>
+            <div class="rounded-md border border-ink/10 bg-white/45 p-5 shadow-low">
+              <div class="sans text-xs uppercase tracking-[.18em] text-reed">Training</div>
+              <div class="mt-3 text-3xl">1 Sheet je Termin</div>
+              <p class="sans mt-2 text-sm leading-6 text-ink/65">Jedes Training bekommt eine eigene Signup- und Attendance-Datei.</p>
+            </div>
+            <div class="rounded-md border border-ink/10 bg-white/45 p-5 shadow-low">
+              <div class="sans text-xs uppercase tracking-[.18em] text-reed">Auth</div>
+              <div class="mt-3 text-3xl">2 Varianten</div>
+              <p class="sans mt-2 text-sm leading-6 text-ink/65">Clerk und Better Auth werden mit getrennten Sheet-Environments verglichen.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Scope</div>
+          <div class="grid gap-4 lg:grid-cols-2">
+            <div class="rounded-md border border-moss/20 bg-moss/[.07] p-6">
+              <h3 class="text-2xl">Im MVP</h3>
+              <ul class="sans mt-4 grid gap-2 text-sm leading-6 text-ink/75 sm:grid-cols-2">
+                <li>Magic-Link Login</li>
+                <li>Self-Service Signup</li>
+                <li>Admin-Freigabe im Sheet</li>
+                <li>Trainingsliste</li>
+                <li>Anmeldung und Absage</li>
+                <li>Entscheidungsworkflow</li>
+                <li>Warteliste und Nachruecken</li>
+                <li>Attendance im Session-Sheet</li>
+                <li>Gastzahlungsstatus</li>
+                <li>Dev-Mail-Adapter</li>
+              </ul>
+            </div>
+            <div class="rounded-md border border-clay/20 bg-clay/[.055] p-6">
+              <h3 class="text-2xl">Spaeter</h3>
+              <ul class="sans mt-4 grid gap-2 text-sm leading-6 text-ink/75 sm:grid-cols-2">
+                <li>Brevo oder Mailgun</li>
+                <li>Scheduler</li>
+                <li>Admin-UI fuer Workflows</li>
+                <li>Attendance-UI</li>
+                <li>Trainerrolle</li>
+                <li>Familienaccounts</li>
+                <li>komplexe Priorisierung</li>
+                <li>iCal Feed</li>
+                <li>Passkeys</li>
+                <li>Social Auth</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="requirements" class="border-y border-ink/10 bg-white/28 px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Requirements</div>
+          <div>
+            <h2 class="text-4xl leading-tight">Funktionale Anforderungen</h2>
+            <p class="sans mt-3 max-w-3xl text-sm leading-7 text-ink/68">Diese Regeln sind der fachliche Kern fuer die Vereinsabstimmung. Sie beschreiben, wie Rider, Trainings, Anmeldungen, Warteliste und Attendance im MVP funktionieren.</p>
+
+            <div class="mt-8 grid gap-5 lg:grid-cols-2">
+              <div class="rounded-md border border-ink/10 bg-paper p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-moss">Rollen und Freigabe</div>
+                <h3 class="mt-2 text-2xl">Nur approved Rider duerfen buchen</h3>
+                <div class="mt-4 grid gap-3 sans text-sm text-ink/74">
+                  <div class="rounded-md border border-ink/10 bg-white/45 p-3"><b>admin</b>: verwaltet fachliche Aktionen, darf auch fahren, Prioritaet wie member.</div>
+                  <div class="rounded-md border border-ink/10 bg-white/45 p-3"><b>member</b>: Vereinsmitglied mit Jahresbeitrag.</div>
+                  <div class="rounded-md border border-ink/10 bg-white/45 p-3"><b>guest</b>: Gastfahrer, zahlt pro Training, wird nachrangig priorisiert.</div>
+                  <div class="rounded-md border border-moss/20 bg-moss/10 p-3"><span class="mono">role in admin/member/guest AND review_status = approved</span></div>
+                </div>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-water">Signup Review</div>
+                <h3 class="mt-2 text-2xl">Self-Service bleibt kontrolliert</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>Neue Rider melden sich per Magic Link an.</li>
+                  <li>Wenn keine E-Mail im Riders-Sheet existiert, legt die App eine neue Zeile an.</li>
+                  <li>Self-Service darf nur `member` oder `guest` setzen, nie `admin`.</li>
+                  <li>Neue Rider starten mit `review_status = pending`.</li>
+                  <li>Admin prueft im Sheet und setzt `approved` oder `rejected`.</li>
+                </ul>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-reed">Anmeldung</div>
+                <h3 class="mt-2 text-2xl">Pending bis zur Entscheidung</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>Ein Rider hat pro Training nur eine aktive Anmeldung.</li>
+                  <li>Anmeldungen sind bis `decision_run_at` erlaubt.</li>
+                  <li>Vor der Entscheidung zeigt die App: "Angemeldet, Entscheidung steht aus".</li>
+                  <li>Nach Absage darf sich ein Rider neu anmelden, dann mit neuer Prioritaet.</li>
+                  <li>Session-Sheet fehlt: Anmeldung blockiert und Admin-Event erzeugt.</li>
+                </ul>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-clay">Platzvergabe</div>
+                <h3 class="mt-2 text-2xl">Member zuerst, Guests danach</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>Entscheidung passiert per Workflow, nicht sofort bei Signup.</li>
+                  <li>Sortierung: `admin/member` vor `guest`, dann `requested_at`.</li>
+                  <li>Erste `capacity` werden `confirmed`.</li>
+                  <li>Alle weiteren bleiben aktiv `waitlisted`.</li>
+                  <li>`priority_rank` und `priority_strategy` werden geschrieben.</li>
+                </ul>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-moss">Absage und Nachruecken</div>
+                <h3 class="mt-2 text-2xl">Confirmed Cancel oeffnet Platz</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>Rider duerfen bis Trainingsstart selbst absagen.</li>
+                  <li>Vor `decision_completed_at`: nur stornieren, kein Nachruecken.</li>
+                  <li>Confirmed Rider nach Decision: erste waitlisted Person rueckt sofort nach.</li>
+                  <li>Waitlisted Rider sagt ab: nur stornieren.</li>
+                  <li>Nachruecken erzeugt `waitlist_promoted` Notice.</li>
+                </ul>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper p-6 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-water">Attendance und Gastzahlung</div>
+                <h3 class="mt-2 text-2xl">Direkt im Session-Sheet</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/74">
+                  <li>`attendance_status = unknown | present | no_show | excused`.</li>
+                  <li>Stornierte Anmeldungen bleiben `attendance_status = unknown`.</li>
+                  <li>`guest_payment_status = not_required | open | paid | waived`.</li>
+                  <li>Guests starten mit `open`; member/admin mit `not_required`.</li>
+                  <li>Admin bekommt Attendance-Reminder mit Link zum Session-Sheet.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="flows" class="border-y border-ink/10 bg-white/28 px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Prozesse</div>
+          <div>
+            <h2 class="text-4xl leading-tight">Zentrale Flows</h2>
+            <p class="sans mt-3 max-w-3xl text-sm leading-7 text-ink/68">Die Diagramme sind bewusst fachlich gehalten. Technische Details wie Auth-Provider, Adapter und Env-Konfiguration kommen danach.</p>
+
+            <div class="mt-8 grid gap-5 xl:grid-cols-2">
+              <div class="rounded-md border border-ink/10 bg-paper/85 p-5 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-moss">Mermaid</div>
+                <h3 class="mt-2 text-2xl">Signup und Freigabe</h3>
+                <pre class="mermaid mt-4">
+flowchart TD
+  A["User oeffnet App"] --> B["Magic-Link Login"]
+  B --> C{"auth_user_id gefunden?"}
+  C -->|Ja| D["Rider laden"]
+  C -->|Nein| E{"E-Mail im riders Sheet?"}
+  E -->|Ja| F["auth_user_id schreiben"]
+  E -->|Nein| G["Self-Service Signup"]
+  G --> H["review_status pending"]
+  H --> I["Admin prueft im Sheet"]
+  F --> J{"review_status"}
+  D --> J
+  J -->|approved| K["Trainingsliste"]
+  J -->|pending| L["Wartet auf Freigabe"]
+  J -->|rejected| M["Kontakt-Seite"]
+                </pre>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper/85 p-5 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-water">Mermaid</div>
+                <h3 class="mt-2 text-2xl">Entscheidung und Nachruecken</h3>
+                <pre class="mermaid mt-4">
+flowchart TD
+  A["workflow:decisions"] --> B{"decision_completed_at gesetzt?"}
+  B -->|Ja| C["Abbrechen"]
+  B -->|Nein| D["Aktive Signups laden"]
+  D --> E["admin/member vor guest sortieren"]
+  E --> F["capacity: confirmed"]
+  E --> G["Rest: waitlisted"]
+  F --> H["Rang und Strategie schreiben"]
+  G --> H
+  H --> I["decision_completed_at setzen"]
+  I --> J["decision-notices erzeugen"]
+  K["Confirmed Rider sagt ab"] --> L["Signup cancelled"]
+  L --> M["Erste waitlisted Person confirmed"]
+  M --> N["waitlist_promoted Notice"]
+                </pre>
+              </div>
+            </div>
+
+            <div class="mt-8 grid gap-5 xl:grid-cols-2">
+              <div class="rounded-md border border-ink/10 bg-paper/80 p-5 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-moss">Signup</div>
+                <h3 class="mt-2 text-2xl">Freigabe statt offener Zugang</h3>
+                <div class="mt-5 grid grid-cols-[1fr_38px_1fr] items-center gap-3">
+                  <div class="flow-node rounded-md p-3 sans text-sm">Magic-Link Login</div>
+                  <div class="flow-arrow"></div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">E-Mail im Riders-Sheet?</div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">Ja: auth_user_id schreiben</div>
+                  <div class="flow-arrow"></div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">approved: Trainingsliste</div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">Nein: Signup Formular</div>
+                  <div class="flow-arrow"></div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">pending: Admin prueft</div>
+                </div>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper/80 p-5 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-water">Anmeldung</div>
+                <h3 class="mt-2 text-2xl">Ein Training, ein Arbeits-Sheet</h3>
+                <div class="mt-5 grid grid-cols-[1fr_38px_1fr] items-center gap-3">
+                  <div class="flow-node rounded-md p-3 sans text-sm">Training sichtbar</div>
+                  <div class="flow-arrow"></div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">Session-Sheet vorhanden?</div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">Ja: Signup-Zeile schreiben</div>
+                  <div class="flow-arrow"></div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">Status pending</div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">Nein: Admin-Event</div>
+                  <div class="flow-arrow"></div>
+                  <div class="flow-node rounded-md p-3 sans text-sm">sync-session-sheets</div>
+                </div>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper/80 p-5 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-reed">Entscheidung</div>
+                <h3 class="mt-2 text-2xl">Erst rechnen, dann Notices</h3>
+                <ol class="sans mt-5 space-y-3 text-sm text-ink/75">
+                  <li class="rounded-md border border-ink/10 bg-white/45 p-3">1. Aktive Signups laden</li>
+                  <li class="rounded-md border border-ink/10 bg-white/45 p-3">2. admin/member vor guest sortieren</li>
+                  <li class="rounded-md border border-ink/10 bg-white/45 p-3">3. capacity bestaetigen, Rest Warteliste</li>
+                  <li class="rounded-md border border-ink/10 bg-white/45 p-3">4. Decision-Notices provider-spezifisch erzeugen</li>
+                </ol>
+              </div>
+
+              <div class="rounded-md border border-ink/10 bg-paper/80 p-5 shadow-low">
+                <div class="sans text-xs uppercase tracking-[.2em] text-clay">Nachruecken</div>
+                <h3 class="mt-2 text-2xl">Absage oeffnet sofort Platz</h3>
+                <div class="mt-5 grid gap-3 sans text-sm">
+                  <div class="flow-node rounded-md p-3">Confirmed Rider sagt vor Start ab</div>
+                  <div class="h-7 w-px bg-moss/45 ml-4"></div>
+                  <div class="flow-node rounded-md p-3">Signup wird cancelled</div>
+                  <div class="h-7 w-px bg-moss/45 ml-4"></div>
+                  <div class="flow-node rounded-md p-3">Erste aktive Wartelistenperson wird confirmed</div>
+                  <div class="h-7 w-px bg-moss/45 ml-4"></div>
+                  <div class="flow-node rounded-md p-3">waitlist_promoted Notice</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="mockups" class="px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Mockups</div>
+          <div>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 class="text-4xl leading-tight">Wichtigste Seiten</h2>
+                <p class="sans mt-3 max-w-3xl text-sm leading-7 text-ink/68">Die Mockups zeigen Struktur und Verhalten, nicht das finale visuelle Design der produktiven App.</p>
+              </div>
+              <div class="sans inline-flex rounded-md border border-ink/10 bg-white/45 p-1 text-sm">
+                <button class="mock-tab rounded px-3 py-2" data-tab="rider">Rider</button>
+                <button class="mock-tab rounded px-3 py-2" data-tab="admin">Admin</button>
+                <button class="mock-tab rounded px-3 py-2" data-tab="sheet">Sheets</button>
+              </div>
+            </div>
+
+            <div class="mock-panel mt-8" data-panel="rider">
+              <div class="grid gap-6 xl:grid-cols-2">
+                <div class="overflow-hidden rounded-md border border-ink/12 bg-white/60 shadow-ink">
+                  <div class="mock-browser-bar flex items-center gap-2 border-b border-ink/10 bg-fog/80 px-4 py-3">
+                    <span class="bg-clay"></span><span class="bg-reed"></span><span class="bg-moss"></span>
+                    <div class="sans ml-3 text-xs text-ink/45">club.example/login</div>
+                  </div>
+                  <div class="p-6">
+                    <div class="sans text-xs uppercase tracking-[.2em] text-moss">Magic Link</div>
+                    <h3 class="mt-3 text-3xl">Einloggen ohne Passwort</h3>
+                    <p class="sans mt-2 text-sm leading-6 text-ink/65">E-Mail eingeben. Im Dev-Modus erscheint der Magic Link direkt im Terminal oder Dev-Event.</p>
+                    <label class="sans mt-6 block text-xs uppercase tracking-[.16em] text-ink/55">E-Mail</label>
+                    <div class="sans mt-2 rounded-md border border-ink/15 bg-paper px-4 py-3 text-sm text-ink/65">anna@example.org</div>
+                    <button class="sans mt-4 w-full rounded-md bg-moss px-4 py-3 text-sm font-semibold text-white shadow-low">Magic Link anfordern</button>
+                  </div>
+                </div>
+
+                <div class="overflow-hidden rounded-md border border-ink/12 bg-white/60 shadow-ink">
+                  <div class="mock-browser-bar flex items-center gap-2 border-b border-ink/10 bg-fog/80 px-4 py-3">
+                    <span class="bg-clay"></span><span class="bg-reed"></span><span class="bg-moss"></span>
+                    <div class="sans ml-3 text-xs text-ink/45">club.example/signup</div>
+                  </div>
+                  <div class="p-6">
+                    <div class="sans text-xs uppercase tracking-[.2em] text-water">Self-Service Signup</div>
+                    <h3 class="mt-3 text-3xl">Freigabe durch Admin</h3>
+                    <div class="mt-5 grid gap-3">
+                      <div class="sans rounded-md border border-ink/12 bg-paper px-4 py-3 text-sm">Vorname: Lena</div>
+                      <div class="sans rounded-md border border-ink/12 bg-paper px-4 py-3 text-sm">Nachname: Fischer</div>
+                      <div class="sans grid grid-cols-2 gap-2 text-sm">
+                        <button class="rounded-md border border-moss bg-moss px-3 py-3 text-white">member</button>
+                        <button class="rounded-md border border-ink/12 bg-white/60 px-3 py-3">guest</button>
+                      </div>
+                    </div>
+                    <div class="sans mt-5 rounded-md border border-reed/30 bg-reed/10 p-4 text-sm leading-6 text-ink/70">Nach dem Absenden wartet der Signup auf Freigabe im Riders-Sheet.</div>
+                  </div>
+                </div>
+
+                <div class="overflow-hidden rounded-md border border-ink/12 bg-white/60 shadow-ink xl:col-span-2">
+                  <div class="mock-browser-bar flex items-center gap-2 border-b border-ink/10 bg-fog/80 px-4 py-3">
+                    <span class="bg-clay"></span><span class="bg-reed"></span><span class="bg-moss"></span>
+                    <div class="sans ml-3 text-xs text-ink/45">club.example/trainings</div>
+                  </div>
+                  <div class="grid gap-0 lg:grid-cols-[.9fr_1.1fr]">
+                    <div class="border-b border-ink/10 p-6 lg:border-b-0 lg:border-r">
+                      <div class="sans text-xs uppercase tracking-[.2em] text-moss">Kommende Trainings</div>
+                      <h3 class="mt-3 text-3xl">Trainingsliste</h3>
+                      <div class="mt-5 space-y-3">
+                        <div class="rounded-md border border-moss/20 bg-moss/10 p-4">
+                          <div class="sans flex items-center justify-between text-sm">
+                            <span class="font-semibold">Freitagstraining</span>
+                            <span class="text-moss">scheduled</span>
+                          </div>
+                          <div class="sans mt-2 text-sm text-ink/65">03.07.2026 · 18:00 · Anlage A</div>
+                        </div>
+                        <div class="rounded-md border border-ink/10 bg-paper p-4">
+                          <div class="sans flex items-center justify-between text-sm">
+                            <span class="font-semibold">Sonntagstraining</span>
+                            <span class="text-ink/45">scheduled</span>
+                          </div>
+                          <div class="sans mt-2 text-sm text-ink/65">12.07.2026 · 10:00 · Anlage B</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="p-6">
+                      <div class="sans text-xs uppercase tracking-[.2em] text-water">Training Detail</div>
+                      <h3 class="mt-3 text-3xl">Freitagstraining</h3>
+                      <dl class="sans mt-5 grid gap-3 text-sm sm:grid-cols-2">
+                        <div class="rounded-md border border-ink/10 bg-paper p-3"><dt class="text-ink/45">Zeit</dt><dd>03.07.2026, 18:00-20:00</dd></div>
+                        <div class="rounded-md border border-ink/10 bg-paper p-3"><dt class="text-ink/45">Ort</dt><dd>Anlage A</dd></div>
+                        <div class="rounded-md border border-ink/10 bg-paper p-3"><dt class="text-ink/45">Status</dt><dd>Angemeldet, Entscheidung steht aus</dd></div>
+                        <div class="rounded-md border border-ink/10 bg-paper p-3"><dt class="text-ink/45">Rolle</dt><dd>member</dd></div>
+                      </dl>
+                      <div class="mt-5 flex flex-wrap gap-3">
+                        <button class="sans rounded-md bg-moss px-4 py-3 text-sm font-semibold text-white">Anmelden</button>
+                        <button class="sans rounded-md border border-clay/40 bg-clay/10 px-4 py-3 text-sm font-semibold text-clay">Absagen</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-panel mt-8 hidden" data-panel="admin">
+              <div class="grid gap-6 xl:grid-cols-2">
+                <div class="rounded-md border border-ink/12 bg-white/60 p-6 shadow-ink">
+                  <div class="sans text-xs uppercase tracking-[.2em] text-clay">Pending Review</div>
+                  <h3 class="mt-3 text-3xl">Neue Rider im Sheet pruefen</h3>
+                  <div class="mt-5 overflow-hidden rounded-md border border-ink/10">
+                    <div class="sheet-grid-riders sans bg-ink text-xs text-paper">
+                      <div class="p-3">rider_id</div><div class="p-3">email</div><div class="p-3">first_name</div><div class="p-3">last_name</div><div class="p-3">role</div><div class="p-3">review_status</div>
+                    </div>
+                    <div class="sheet-grid-riders sans border-t border-ink/10 bg-paper text-xs">
+                      <div class="p-3">rider_7K2...</div><div class="p-3">lena@example.org</div><div class="p-3">Lena</div><div class="p-3">Fischer</div><div class="p-3">guest</div><div class="p-3 text-reed">pending</div>
+                    </div>
+                    <div class="sheet-grid-riders sans border-t border-ink/10 bg-white/60 text-xs">
+                      <div class="p-3">rider_9P1...</div><div class="p-3">max@example.org</div><div class="p-3">Max</div><div class="p-3">Keller</div><div class="p-3">member</div><div class="p-3 text-moss">approved</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rounded-md border border-ink/12 bg-white/60 p-6 shadow-ink">
+                  <div class="sans text-xs uppercase tracking-[.2em] text-water">Workflow Board</div>
+                  <h3 class="mt-3 text-3xl">Terminal-Workflows</h3>
+                  <div class="mono mt-5 space-y-2 text-xs">
+                    <div class="rounded-md bg-ink p-3 text-paper">mise run workflow:sync-session-sheets</div>
+                    <div class="rounded-md bg-ink p-3 text-paper">mise run workflow:fill-session-defaults</div>
+                    <div class="rounded-md bg-ink p-3 text-paper">mise run workflow:decisions -- T-001</div>
+                    <div class="rounded-md bg-ink p-3 text-paper">mise run clerk:decision-notices -- T-001</div>
+                    <div class="rounded-md bg-ink p-3 text-paper">mise run workflow:attendance-reminder -- T-001</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mock-panel mt-8 hidden" data-panel="sheet">
+              <div class="rounded-md border border-ink/12 bg-white/60 p-6 shadow-ink">
+                <div class="sans flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div class="text-xs uppercase tracking-[.2em] text-moss">Session-Sheet</div>
+                    <h3 class="mt-3 text-3xl">2026-07-03_T-001_Freitagstraining</h3>
+                  </div>
+                  <div class="rounded-md border border-ink/10 bg-paper px-3 py-2 text-xs text-ink/60">Tabs: info · signups</div>
+                </div>
+                <div class="mt-6 overflow-x-auto rounded-md border border-ink/10">
+                  <div class="sheet-grid sans bg-ink text-xs text-paper">
+                    <div class="p-3">rider_name</div>
+                    <div class="p-3">rider_role</div>
+                    <div class="p-3">requested_at</div>
+                    <div class="p-3">decision_status</div>
+                    <div class="p-3">attendance_status</div>
+                    <div class="p-3">guest_payment</div>
+                  </div>
+                  <div class="sheet-grid sans border-t border-ink/10 bg-paper text-xs">
+                    <div class="p-3">Anna Beispiel</div><div class="p-3">member</div><div class="p-3">28.06. 10:14</div><div class="p-3 text-moss">confirmed</div><div class="p-3">present</div><div class="p-3">not_required</div>
+                  </div>
+                  <div class="sheet-grid sans border-t border-ink/10 bg-white/70 text-xs">
+                    <div class="p-3">Tom Gast</div><div class="p-3">guest</div><div class="p-3">28.06. 10:40</div><div class="p-3 text-moss">confirmed</div><div class="p-3">unknown</div><div class="p-3 text-reed">open</div>
+                  </div>
+                  <div class="sheet-grid sans border-t border-ink/10 bg-paper text-xs">
+                    <div class="p-3">Mira W.</div><div class="p-3">guest</div><div class="p-3">29.06. 08:05</div><div class="p-3 text-water">waitlisted</div><div class="p-3">unknown</div><div class="p-3 text-reed">open</div>
+                  </div>
+                </div>
+                <p class="sans mt-4 text-sm leading-6 text-ink/65">Admins arbeiten hier direkt vor oder nach dem Training. Die App nutzt die Spreadsheet-ID aus `training_sessions`, nicht den Dateinamen.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="sheets" class="border-y border-ink/10 bg-white/28 px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Datenmodell</div>
+          <div>
+            <h2 class="text-4xl leading-tight">Google Sheets als Backend</h2>
+            <div class="mt-8 grid gap-5 lg:grid-cols-3">
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <h3 class="text-2xl">club_riders</h3>
+                <p class="sans mt-2 text-sm text-ink/65">Personen, Rollen, Review und Auth-Verknuepfung.</p>
+                <div class="mono mt-4 text-xs leading-6 text-ink/72">rider_id<br>auth_user_id<br>email<br>first_name<br>last_name<br>role<br>review_status<br>onboarding_invite_sent_at<br>notes</div>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <h3 class="text-2xl">club_training</h3>
+                <p class="sans mt-2 text-sm text-ink/65">Index der Trainingstermine und Workflow-Zeitpunkte.</p>
+                <div class="mono mt-4 text-xs leading-6 text-ink/72">session_id<br>title<br>starts_at<br>ends_at<br>location<br>capacity<br>invite_send_at<br>invite_sent_at<br>decision_run_at<br>decision_completed_at<br>decision_notices_sent_at<br>attendance_reminder_send_at<br>attendance_reminder_sent_at<br>signups_spreadsheet_id<br>signups_spreadsheet_url<br>status</div>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <h3 class="text-2xl">Session-Sheet</h3>
+                <p class="sans mt-2 text-sm text-ink/65">Ein Sheet pro Training fuer Signups, Attendance und Gastzahlung.</p>
+                <div class="mono mt-4 text-xs leading-6 text-ink/72">rider_id<br>rider_name<br>rider_role<br>requested_at<br>signup_status<br>decision_status<br>priority_rank<br>priority_strategy<br>promoted_at<br>cancelled_at<br>cancelled_by<br>attendance_status<br>guest_payment_status</div>
+              </div>
+            </div>
+
+            <div class="mt-8 grid gap-5 xl:grid-cols-2">
+              <div class="rounded-md border border-ink/10 bg-paper/80 p-6">
+                <h3 class="text-2xl">Riders-Regeln</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>`email` wird per `trim().toLowerCase()` gematched.</li>
+                  <li>Doppelte E-Mail-Zeilen sind ein Admin-Bereinigungsfehler.</li>
+                  <li>E-Mail-Aenderungen sind nicht Teil des MVP.</li>
+                  <li>Keine Telefonnummer, Adresse, Geburtsdatum, `created_at` oder `updated_at`.</li>
+                  <li>`auth_user_id` bleibt leer, bis der erste Magic-Link-Login erfolgt.</li>
+                </ul>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper/80 p-6">
+                <h3 class="text-2xl">Session-Sheet-Regeln</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>Tabs: `info` und `signups`.</li>
+                  <li>`info` ist Key-Value und wird aus `training_sessions` synchronisiert.</li>
+                  <li>Kein `signup_id`; praktischer Key ist `rider_id + requested_at`.</li>
+                  <li>Pro Rider nur eine aktive Anmeldung je Session-Sheet.</li>
+                  <li>`rider_name` und `rider_role` sind historische Snapshots.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-8 rounded-md border border-ink/10 bg-paper/80 p-6">
+              <h3 class="text-2xl">Environment-Prinzip</h3>
+              <p class="sans mt-3 max-w-4xl text-sm leading-7 text-ink/70">Clerk und Better Auth bekommen getrennte Google-Sheets-Environments. Dadurch bleiben die Fachspalten generisch: `auth_user_id`, `invite_sent_at`, `decision_notices_sent_at`. Es gibt keine provider-spezifischen Fachspalten.</p>
+              <div class="mt-5 grid gap-4 md:grid-cols-2">
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">
+                  <div class="sans text-xs uppercase tracking-[.2em] text-moss">Clerk Environment</div>
+                  <div class="mono mt-3 text-xs leading-6">CLUB_RIDERS_SPREADSHEET_ID<br>CLUB_TRAINING_SPREADSHEET_ID<br>SESSION_SHEETS_FOLDER_ID</div>
+                </div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4">
+                  <div class="sans text-xs uppercase tracking-[.2em] text-water">Better Auth Environment</div>
+                  <div class="mono mt-3 text-xs leading-6">CLUB_RIDERS_SPREADSHEET_ID<br>CLUB_TRAINING_SPREADSHEET_ID<br>SESSION_SHEETS_FOLDER_ID</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="workflows" class="px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Workflows</div>
+          <div>
+            <h2 class="text-4xl leading-tight">Terminal zuerst, Scheduler spaeter</h2>
+            <div class="mt-8 grid gap-5 lg:grid-cols-2">
+              <div class="rounded-md border border-ink/10 bg-ink p-5 text-paper shadow-ink">
+                <h3 class="text-2xl">Provider-spezifisch</h3>
+                <pre class="mono mt-4 overflow-x-auto text-xs leading-6 text-paper/82">mise run clerk:onboarding-invites
+mise run clerk:training-invites -- T-001
+mise run clerk:decision-notices -- T-001
+
+mise run better-auth:onboarding-invites
+mise run better-auth:training-invites -- T-001
+mise run better-auth:decision-notices -- T-001</pre>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-ink p-5 text-paper shadow-ink">
+                <h3 class="text-2xl">Provider-neutral</h3>
+                <pre class="mono mt-4 overflow-x-auto text-xs leading-6 text-paper/82">mise run workflow:sync-session-sheets
+mise run workflow:fill-session-defaults
+mise run workflow:decisions -- T-001
+mise run workflow:wipe-decision -- T-001
+mise run workflow:cancel-training -- T-001
+mise run workflow:attendance-reminder -- T-001</pre>
+              </div>
+            </div>
+
+            <div class="mt-8 grid gap-5 lg:grid-cols-3">
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <div class="sans text-xs uppercase tracking-[.2em] text-moss">sync-session-sheets</div>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>kopiert Google-Sheets-Template</li>
+                  <li>schreibt Spreadsheet-ID und URL zurueck</li>
+                  <li>aktualisiert `info`</li>
+                  <li>validiert Spalten</li>
+                  <li>warnt bei ueberfluessigen Sheets</li>
+                  <li>loescht nichts automatisch</li>
+                </ul>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <div class="sans text-xs uppercase tracking-[.2em] text-reed">fill-session-defaults</div>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>setzt `invite_send_at`</li>
+                  <li>setzt `decision_run_at`</li>
+                  <li>setzt `attendance_reminder_send_at`</li>
+                  <li>berechnet relativ zu `starts_at`</li>
+                  <li>nutzt Env-Defaults</li>
+                </ul>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5">
+                <div class="sans text-xs uppercase tracking-[.2em] text-clay">decisions</div>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>bricht ab, wenn abgeschlossen</li>
+                  <li>liest aktive Signups</li>
+                  <li>sortiert admin/member vor guest</li>
+                  <li>setzt confirmed/waitlisted</li>
+                  <li>schreibt Rang und Strategie</li>
+                  <li>verschickt keine Notices</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-8 rounded-md border border-ink/10 bg-paper/80 p-6">
+              <h3 class="text-2xl">Notice-Typen im MVP</h3>
+              <div class="sans mt-4 grid gap-2 text-sm text-ink/74 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">onboarding_invite</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">signup_pending_admin_notice</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">training_invite</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">decision_confirmed</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">decision_waitlisted</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">waitlist_promoted</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">training_cancelled</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">attendance_admin_reminder</div>
+              </div>
+              <p class="sans mt-4 text-sm leading-6 text-ink/65">Im MVP werden diese Notices ueber den `devlog` Adapter erzeugt. Spaeter kann derselbe Adapter-Vertrag mit Brevo oder Mailgun verbunden werden.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tech" class="border-t border-ink/10 bg-white/28 px-5 py-10 sm:px-8 lg:px-12">
+        <div class="grid gap-8 lg:grid-cols-[130px_1fr]">
+          <div class="section-number sans text-xs uppercase tracking-[.28em] text-ink/35">Technik</div>
+          <div>
+            <h2 class="text-4xl leading-tight">Umsetzungsstack</h2>
+            <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-moss">App</div><div class="mt-3 text-2xl">Next.js</div><p class="sans mt-2 text-sm text-ink/65">App Router, React, TypeScript</p></div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-water">UI</div><div class="mt-3 text-2xl">shadcn/ui</div><p class="sans mt-2 text-sm text-ink/65">Tailwind und lucide-react</p></div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-reed">Repo</div><div class="mt-3 text-2xl">pnpm</div><p class="sans mt-2 text-sm text-ink/65">Workspaces, Node 24 LTS, pnpm 10</p></div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-clay">Env</div><div class="mt-3 text-2xl">mise</div><p class="sans mt-2 text-sm text-ink/65">Dev-Tasks und lokale Env</p></div>
+            </div>
+
+            <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
+              <h3 class="text-2xl">Monorepo</h3>
+              <pre class="mono mt-4 overflow-x-auto rounded-md bg-ink p-5 text-xs leading-6 text-paper">apps/
+  club-clerk/
+  club-better-auth/
+packages/
+  ui/
+  domain/
+  sheets/
+  workflows/
+  email/
+  config/</pre>
+            </div>
+
+            <div class="mt-8 grid gap-5 lg:grid-cols-2">
+              <div class="rounded-md border border-ink/10 bg-paper p-6">
+                <h3 class="text-2xl">Environment Variablen</h3>
+                <pre class="mono mt-4 overflow-x-auto rounded-md bg-ink p-5 text-xs leading-6 text-paper">APP_BASE_URL
+APP_TIMEZONE=Europe/Berlin
+CLUB_NAME
+SUPPORT_EMAIL
+CLUB_RIDERS_SPREADSHEET_ID
+CLUB_TRAINING_SPREADSHEET_ID
+SESSION_SHEET_TEMPLATE_ID
+SESSION_SHEETS_FOLDER_ID
+DEFAULT_INVITE_DAYS_BEFORE
+DEFAULT_DECISION_DAYS_BEFORE
+DEFAULT_ATTENDANCE_REMINDER_HOURS_BEFORE</pre>
+              </div>
+              <div class="rounded-md border border-ink/10 bg-paper p-6">
+                <h3 class="text-2xl">Auth-Vergleich</h3>
+                <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
+                  <li>Beide Apps nutzen Magic-Link-Login.</li>
+                  <li>Clerk und Better Auth haben getrennte Sheet-Environments.</li>
+                  <li>Better Auth nutzt SQLite nur fuer lokal/dev.</li>
+                  <li>E-Mail/Passwort ist nicht im MVP vorgesehen.</li>
+                  <li>Social Auth und Passkeys kommen spaeter.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
+              <h3 class="text-2xl">Spaeter bewusst ausbauen</h3>
+              <div class="sans mt-4 grid gap-2 text-sm text-ink/72 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">echte E-Mail-Zustellung</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Scheduler</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Admin-/Attendance-UI</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Trainerrolle</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Readonly-Rolle</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Sperrstatus fuer Rider</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Familienaccounts</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Minderjaehrige</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">komplexe Priorisierung</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Zahlungsabwicklung</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">iCal Feed</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Trainingsserien</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Audit Logs</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Environment Clone Workflow</div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-3">Passkeys / Social Auth</div>
+              </div>
+            </div>
+
+            <div id="open" class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
+              <h3 class="text-2xl">Noch zu klaeren</h3>
+              <ul class="sans mt-4 grid gap-2 text-sm leading-6 text-ink/72 md:grid-cols-2">
+                <li>Wer pflegt `club_riders` und `club_training`?</li>
+                <li>Wer darf Session-Sheets bearbeiten?</li>
+                <li>Braucht es eine Regel fuer spaete Absagen?</li>
+                <li>Reicht `notes` fuer interne Hinweise?</li>
+                <li>Persistente Dev-Mail-History?</li>
+                <li>Google-Sheets DateTime Parsing im Detail</li>
+                <li>Better-Auth Plugin-Auswahl fuer Magic Links</li>
+                <li>Genauer Deployment-Pfad</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "base",
+      themeVariables: {
+        background: "#f7f4ec",
+        primaryColor: "#eef0e6",
+        primaryTextColor: "#17201b",
+        primaryBorderColor: "#2f5d46",
+        lineColor: "#2f5d46",
+        secondaryColor: "#efe6d1",
+        tertiaryColor: "#ffffff",
+        fontFamily: "Avenir Next, Segoe UI, sans-serif"
+      }
+    });
+
+    const buttons = Array.from(document.querySelectorAll(".mock-tab"));
+    const panels = Array.from(document.querySelectorAll(".mock-panel"));
+
+    function activate(tab) {
+      buttons.forEach((button) => {
+        const active = button.dataset.tab === tab;
+        button.classList.toggle("bg-ink", active);
+        button.classList.toggle("text-paper", active);
+        button.classList.toggle("text-ink", !active);
+      });
+      panels.forEach((panel) => {
+        panel.classList.toggle("hidden", panel.dataset.panel !== tab);
+      });
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => activate(button.dataset.tab));
+    });
+    activate("rider");
+  </script>
+</body>
+</html>
