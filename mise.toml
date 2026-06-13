@@ -3,6 +3,10 @@ APP_TIMEZONE = "Europe/Berlin"
 GOOGLE_WORKSPACE_PROJECT_ID = "rider-499313"
 GOOGLE_PROJECT_ID = "rider-499313"
 GOOGLE_SERVICE_ACCOUNT_EMAIL = "rider-22@rider-499313.iam.gserviceaccount.com"
+GOOGLE_APPLICATION_CREDENTIALS = "/Users/daniel/code/wsc-prototypes/google-service-account.local.json"
+
+CLERK_APP_ID = "app_3F5I0r7ipX4ueR77SHBRhBcJTHw"
+CLERK_DEV_INSTANCE_ID = "ins_3F5I0uuy1tbzHFScNL7pnhahpEr"
 
 WSC_DRIVE_ROOT_FOLDER_ID = "1DFcRTGyaknZjzLDhbjFK1_IokboR8-4Z"
 

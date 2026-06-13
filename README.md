@@ -51,3 +51,17 @@ Drive Root:
 ## Lokale Konfiguration
 
 Die nicht-geheimen Google IDs stehen in [mise.toml](./mise.toml). Secrets wie Service-Account-Private-Keys gehoeren nicht ins Repo.
+
+## Clerk
+
+Clerk-App fuer das Clerk-Environment:
+
+- Name: `WSC Prototypes Clerk`
+- App ID: `app_3F5I0r7ipX4ueR77SHBRhBcJTHw`
+- Development Instance ID: `ins_3F5I0uuy1tbzHFScNL7pnhahpEr`
+
+Lokale Keys liegen in `.env.local` und werden nicht committed:
+
+- `CLERK_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
