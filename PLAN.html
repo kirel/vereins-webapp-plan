@@ -816,7 +816,7 @@ mise run workflow:attendance-reminder -- T-001</pre>
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">training_cancelled</div>
                 <div class="rounded-md border border-ink/10 bg-white/45 p-3">attendance_admin_reminder</div>
               </div>
-              <p class="sans mt-4 text-sm leading-6 text-ink/65">Im MVP werden diese Notices ueber den `devlog` Adapter erzeugt. Spaeter kann derselbe Adapter-Vertrag mit Brevo oder Mailgun verbunden werden.</p>
+              <p class="sans mt-4 text-sm leading-6 text-ink/65">Im MVP werden diese Notices ueber den `devlog` Adapter erzeugt: Ausgabe auf stdout plus lokales `data/dev-notices.jsonl`. Spaeter kann derselbe Adapter-Vertrag mit Brevo oder Mailgun verbunden werden.</p>
             </div>
           </div>
         </div>
@@ -830,8 +830,22 @@ mise run workflow:attendance-reminder -- T-001</pre>
             <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-moss">App</div><div class="mt-3 text-2xl">Next.js</div><p class="sans mt-2 text-sm text-ink/65">App Router, React, TypeScript</p></div>
               <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-water">UI</div><div class="mt-3 text-2xl">shadcn/ui</div><p class="sans mt-2 text-sm text-ink/65">Tailwind und lucide-react</p></div>
-              <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-reed">Repo</div><div class="mt-3 text-2xl">pnpm</div><p class="sans mt-2 text-sm text-ink/65">Workspaces, Node 24 LTS, pnpm 10</p></div>
+              <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-reed">Repo</div><div class="mt-3 text-2xl">pnpm</div><p class="sans mt-2 text-sm text-ink/65">Workspaces only, kein Turborepo</p></div>
               <div class="rounded-md border border-ink/10 bg-paper p-5"><div class="sans text-xs uppercase tracking-[.2em] text-clay">Env</div><div class="mt-3 text-2xl">mise</div><p class="sans mt-2 text-sm text-ink/65">Dev-Tasks und lokale Env</p></div>
+            </div>
+
+            <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
+              <h3 class="text-2xl">Finale Umsetzungsentscheidungen</h3>
+              <div class="sans mt-5 grid gap-3 text-sm leading-6 text-ink/72 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-moss">Runtime</span><span class="mt-2 block">Node 24 LTS und pnpm 10 sind in `mise.toml` gepinnt.</span></div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-reed">Monorepo</span><span class="mt-2 block">pnpm Workspaces reichen im MVP; kein Turborepo.</span></div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-water">Apps</span><span class="mt-2 block">Zwei Next.js Apps, gemeinsamer fachlicher Core.</span></div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-clay">UI</span><span class="mt-2 block">Tailwind, shadcn/ui und lucide-react.</span></div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-moss">Notices</span><span class="mt-2 block">stdout plus `data/dev-notices.jsonl`.</span></div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-reed">Sheets</span><span class="mt-2 block">Session-Sheets werden per Sync-Workflow erzeugt.</span></div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-water">Zeit</span><span class="mt-2 block">Echte Google-Sheets Datum/Zeit-Zellen, normalisiert mit `APP_TIMEZONE`.</span></div>
+                <div class="rounded-md border border-ink/10 bg-white/45 p-4"><span class="block text-xs uppercase tracking-[.18em] text-clay">Better Auth</span><span class="mt-2 block">SQLite mit `better-sqlite3` fuer den Prototyp.</span></div>
+              </div>
             </div>
 
             <div class="mt-8 rounded-md border border-ink/10 bg-paper p-6">
@@ -868,7 +882,7 @@ DEFAULT_ATTENDANCE_REMINDER_HOURS_BEFORE</pre>
                 <ul class="sans mt-4 space-y-2 text-sm leading-6 text-ink/72">
                   <li>Beide Apps nutzen Magic-Link-Login.</li>
                   <li>Clerk und Better Auth haben getrennte Sheet-Environments.</li>
-                  <li>Better Auth nutzt SQLite nur fuer lokal/dev.</li>
+                  <li>Better Auth nutzt SQLite mit `better-sqlite3` nur fuer lokal/dev.</li>
                   <li>E-Mail/Passwort ist nicht im MVP vorgesehen.</li>
                   <li>Social Auth und Passkeys kommen spaeter.</li>
                 </ul>
@@ -922,10 +936,7 @@ DEFAULT_ATTENDANCE_REMINDER_HOURS_BEFORE</pre>
                 <li>Reicht `notes` fuer interne Hinweise?</li>
                 <li>Sollen Admins garantiert Plaetze bekommen oder nur wie Members priorisiert werden?</li>
                 <li>Wann genau wird `excused` gesetzt?</li>
-                <li>Persistente Dev-Mail-History?</li>
-                <li>Google-Sheets DateTime Parsing im Detail</li>
                 <li>Better-Auth Plugin-Auswahl fuer Magic Links</li>
-                <li>Genauer Deployment-Pfad</li>
                 <li>Locking bei mehreren Server-Instanzen</li>
               </ul>
             </div>
